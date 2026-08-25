@@ -1,0 +1,433 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Gamemode {
+  SWORD
+  AXE
+  NETHPOT
+  DIAPOT
+  SMP
+  UHC
+  CRYSTAL
+  MACE
+  SPEARMACE
+}
+
+enum TierName {
+  LT5
+  HT5
+  LT4
+  HT4
+  LT3
+  HT3
+  LT2
+  HT2
+  LT1
+  HT1
+}
+
+enum TesterCertificationLevel {
+  NONE
+  LOWER
+  MIDDLE
+  HIGHER
+}
+
+enum TesterStatus {
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
+enum TesterAvailability {
+  AVAILABLE
+  BUSY
+  OFFLINE
+}
+
+enum TesterRegion {
+  AS
+  ME
+  BOTH
+}
+
+enum QueueRegion {
+  AS
+  ME
+}
+
+enum QueueBracket {
+  LOWER
+  MIDDLE
+  HIGHER
+}
+
+enum QueueStatus {
+  QUEUED
+  CLAIMED
+  CANCELLED
+}
+
+enum TestingSessionStatus {
+  OPEN
+  CLOSED
+}
+
+enum AuditAction {
+  TIER_CHANGED
+  TIER_REMOVED
+  ROLE_SYNCED
+  ROLE_SYNC_FAILED
+  TESTER_ADDED
+  TESTER_DISABLED
+  TESTER_SUSPENDED
+  TESTER_RESTORED
+  TESTER_AVAILABILITY_CHANGED
+  TESTER_REGION_CHANGED
+  TESTER_CERTIFICATION_CHANGED
+  TESTER_CERTIFICATION_REMOVED
+  TESTER_ROLE_SYNCED
+  TESTER_ROLE_SYNC_FAILED
+  QUEUE_JOINED
+  QUEUE_LEFT
+  QUEUE_CANCELLED
+  QUEUE_CLAIMED
+  QUEUE_RELEASED
+  QUEUE_CLAIM_FAILED
+  QUEUE_WHITELIST_JOINED
+  QUEUE_WHITELIST_LEFT
+  QUEUE_PLAYER_REMOVED
+  QUEUE_OPENED
+  QUEUE_CLOSED
+  QUEUE_ROLE_SYNCED
+  QUEUE_ROLE_SYNC_FAILED
+  QUEUE_CHANNEL_CONFIGURED
+  TESTING_SESSION_OPENED
+  TESTING_SESSION_CLOSED
+  TESTING_QUEUE_JOINED
+  TESTING_QUEUE_LEFT
+  TESTING_QUEUE_COMPLETED
+  TESTING_QUEUE_MESSAGE_REFRESHED
+  TESTING_QUEUE_MESSAGE_RECOVERED
+  TESTING_QUEUE_CLEANUP_FAILED
+}
+
+model GuildConfig {
+  id                  String    @id @default(cuid())
+  guildId             String    @unique
+  queueChannelId      String?
+  queuePanelMessageId String?
+  resultsChannelId    String?
+  logsChannelId       String?
+  reviewChannelId     String?
+  testCategoryId      String?
+  ownerRoleId         String?
+  administratorRoleId String?
+  tierManagerRoleId   String?
+  headTesterRoleId    String?
+  seniorTesterRoleId  String?
+  testerRoleId        String?
+  trialTesterRoleId   String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  auditLogs           AuditLog[]
+  players             Player[]
+  queueEntries        QueueEntry[]
+  queueSequence       QueueSequence?
+  queueWhitelistConfigs QueueWhitelistConfig[]
+  testingSessions     TestingSession[]
+  testerCertificationHistory TesterCertificationHistory[]
+  tierHistory         TierHistory[]
+  tierRoles           TierRole[]
+  testers             Tester[]
+}
+
+model QueueWhitelistConfig {
+  id                    String             @id @default(cuid())
+  guildId               String
+  gamemodeId            String
+  region                QueueRegion
+  roleId                String?
+  channelId             String?
+  isOpen                Boolean            @default(false)
+  openedAt              DateTime?
+  openedByDiscordUserId String?
+  closedAt              DateTime?
+  closedByDiscordUserId String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  gamemode              GamemodeDefinition @relation(fields: [gamemodeId], references: [id], onDelete: Restrict)
+  guild                 GuildConfig        @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@unique([guildId, gamemodeId, region])
+  @@unique([guildId, roleId])
+  @@index([guildId, isOpen])
+  @@index([guildId, channelId])
+}
+
+model Player {
+  id              String        @id @default(cuid())
+  guildId         String
+  discordUserId   String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  guild           GuildConfig   @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+  tiers           PlayerTier[]
+  queueEntries    QueueEntry[]
+  tierHistory     TierHistory[]
+  auditLogs       AuditLog[]
+
+  @@unique([guildId, discordUserId])
+  @@index([discordUserId])
+}
+
+model PlayerTier {
+  id         String             @id @default(cuid())
+  playerId   String
+  gamemodeId String
+  tierId     String
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  gamemode   GamemodeDefinition @relation(fields: [gamemodeId], references: [id], onDelete: Restrict)
+  player     Player             @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  tier       TierDefinition     @relation(fields: [tierId], references: [id], onDelete: Restrict)
+
+  @@unique([playerId, gamemodeId])
+  @@index([gamemodeId])
+  @@index([tierId])
+}
+
+model TierHistory {
+  id                     String             @id @default(cuid())
+  guildId                String
+  playerId               String
+  gamemodeId             String
+  oldTierId              String?
+  newTierId              String?
+  changedByDiscordUserId String
+  reason                 String
+  createdAt              DateTime           @default(now())
+  gamemode               GamemodeDefinition @relation(fields: [gamemodeId], references: [id], onDelete: Restrict)
+  guild                  GuildConfig        @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+  newTier                TierDefinition?    @relation("TierHistoryNewTier", fields: [newTierId], references: [id], onDelete: Restrict)
+  oldTier                TierDefinition?    @relation("TierHistoryOldTier", fields: [oldTierId], references: [id], onDelete: Restrict)
+  player                 Player             @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([guildId, playerId, createdAt])
+  @@index([gamemodeId])
+}
+
+model AuditLog {
+  id                     String      @id @default(cuid())
+  guildId                String
+  playerId               String?
+  testerId               String?
+  action                 AuditAction
+  changedByDiscordUserId String
+  details                String
+  createdAt              DateTime    @default(now())
+  guild                  GuildConfig @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+  player                 Player?     @relation(fields: [playerId], references: [id], onDelete: SetNull)
+  tester                 Tester?     @relation(fields: [testerId], references: [id], onDelete: SetNull)
+
+  @@index([guildId, createdAt])
+  @@index([playerId])
+  @@index([testerId])
+}
+
+model Tester {
+  id                     String                       @id @default(cuid())
+  guildId                String
+  discordUserId          String
+  status                 TesterStatus                 @default(ACTIVE)
+  availability           TesterAvailability           @default(OFFLINE)
+  regionAvailability     TesterRegion                 @default(BOTH)
+  createdByDiscordUserId String?
+  suspendedAt            DateTime?
+  suspendedByDiscordUserId String?
+  suspendedReason        String?
+  disabledAt             DateTime?
+  disabledByDiscordUserId String?
+  disabledReason         String?
+  createdAt              DateTime                     @default(now())
+  updatedAt              DateTime                     @updatedAt
+  auditLogs              AuditLog[]
+  claimedQueueEntries    QueueEntry[]
+  certificationHistory   TesterCertificationHistory[]
+  certifications         TesterCertification[]
+  guild                  GuildConfig                  @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+  openedTestingSessions  TestingSession[]
+
+  @@unique([guildId, discordUserId])
+  @@index([discordUserId])
+  @@index([guildId, status])
+}
+
+model TestingSession {
+  id                    String               @id @default(cuid())
+  guildId               String
+  gamemodeId            String
+  region                QueueRegion
+  testerId              String
+  channelId             String
+  messageId             String
+  status                TestingSessionStatus @default(OPEN)
+  openedAt              DateTime             @default(now())
+  closedAt              DateTime?
+  closedByDiscordUserId String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  gamemode              GamemodeDefinition   @relation(fields: [gamemodeId], references: [id], onDelete: Restrict)
+  guild                 GuildConfig          @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+  members               TestingSessionMember[]
+  tester                Tester               @relation(fields: [testerId], references: [id], onDelete: Restrict)
+
+  @@index([guildId, gamemodeId, region, status])
+  @@index([guildId, status, openedAt])
+  @@index([testerId, status])
+}
+
+model TestingSessionMember {
+  id            String         @id @default(cuid())
+  sessionId     String
+  discordUserId String
+  joinedAt      DateTime       @default(now())
+  createdAt     DateTime       @default(now())
+  session       TestingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, discordUserId])
+  @@index([sessionId, joinedAt])
+  @@index([discordUserId])
+}
+
+model TesterCertification {
+  id         String                   @id @default(cuid())
+  testerId   String
+  gamemodeId String
+  level      TesterCertificationLevel @default(NONE)
+  createdAt  DateTime                 @default(now())
+  updatedAt  DateTime                 @updatedAt
+  gamemode   GamemodeDefinition       @relation(fields: [gamemodeId], references: [id], onDelete: Restrict)
+  tester     Tester                   @relation(fields: [testerId], references: [id], onDelete: Cascade)
+
+  @@unique([testerId, gamemodeId])
+  @@index([gamemodeId])
+}
+
+model TesterCertificationHistory {
+  id                     String                   @id @default(cuid())
+  guildId                String
+  testerId               String
+  gamemodeId             String
+  oldLevel               TesterCertificationLevel
+  newLevel               TesterCertificationLevel
+  changedByDiscordUserId String
+  reason                 String
+  createdAt              DateTime                 @default(now())
+  gamemode               GamemodeDefinition       @relation(fields: [gamemodeId], references: [id], onDelete: Restrict)
+  guild                  GuildConfig              @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+  tester                 Tester                   @relation(fields: [testerId], references: [id], onDelete: Cascade)
+
+  @@index([guildId, testerId, createdAt])
+  @@index([gamemodeId])
+}
+
+model TierRole {
+  id         String             @id @default(cuid())
+  guildId    String
+  gamemodeId String
+  tierId     String
+  roleId     String
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  gamemode   GamemodeDefinition @relation(fields: [gamemodeId], references: [id], onDelete: Restrict)
+  guild      GuildConfig        @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+  tier       TierDefinition     @relation(fields: [tierId], references: [id], onDelete: Restrict)
+
+  @@unique([guildId, gamemodeId, tierId])
+  @@unique([guildId, roleId])
+  @@index([roleId])
+}
+
+model QueueSequence {
+  id            String      @id @default(cuid())
+  guildId        String      @unique
+  nextDisplayId  Int         @default(1)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  guild          GuildConfig @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+}
+
+model QueueEntry {
+  id                        String             @id @default(cuid())
+  displayId                 Int
+  guildId                   String
+  playerId                  String
+  region                    QueueRegion
+  gamemodeId                String
+  currentTierId             String?
+  requestedTierId           String
+  bracket                   QueueBracket
+  status                    QueueStatus        @default(QUEUED)
+  queuedAt                  DateTime           @default(now())
+  claimedAt                 DateTime?
+  claimedByTesterId         String?
+  cancelledAt               DateTime?
+  cancelledByDiscordUserId  String?
+  cancelReason              String?
+  createdAt                 DateTime           @default(now())
+  updatedAt                 DateTime           @updatedAt
+  claimedByTester           Tester?            @relation(fields: [claimedByTesterId], references: [id], onDelete: SetNull)
+  currentTier               TierDefinition?    @relation("QueueEntryCurrentTier", fields: [currentTierId], references: [id], onDelete: SetNull)
+  gamemode                  GamemodeDefinition @relation(fields: [gamemodeId], references: [id], onDelete: Restrict)
+  guild                     GuildConfig        @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+  player                    Player             @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  requestedTier             TierDefinition     @relation("QueueEntryRequestedTier", fields: [requestedTierId], references: [id], onDelete: Restrict)
+
+  @@unique([guildId, displayId])
+  @@index([guildId, status, queuedAt])
+  @@index([playerId])
+  @@index([claimedByTesterId])
+  @@index([region])
+  @@index([gamemodeId])
+  @@index([requestedTierId])
+  @@index([guildId, status, region, gamemodeId, bracket, queuedAt])
+}
+
+model GamemodeDefinition {
+  id                   String                @id @default(cuid())
+  key                  Gamemode              @unique
+  label                String                @unique
+  sortOrder            Int                   @unique
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  tierHistory          TierHistory[]
+  playerTiers          PlayerTier[]
+  queueEntries         QueueEntry[]
+  queueWhitelistConfigs QueueWhitelistConfig[]
+  testingSessions      TestingSession[]
+  testerCertifications TesterCertification[]
+  testerCertificationHistory TesterCertificationHistory[]
+  tierRoles            TierRole[]
+}
+
+model TierDefinition {
+  id          String       @id @default(cuid())
+  key         TierName     @unique
+  label       String       @unique
+  sortOrder   Int          @unique
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  newTierHistory TierHistory[] @relation("TierHistoryNewTier")
+  oldTierHistory TierHistory[] @relation("TierHistoryOldTier")
+  playerTiers    PlayerTier[]
+  currentQueueEntries QueueEntry[] @relation("QueueEntryCurrentTier")
+  requestedQueueEntries QueueEntry[] @relation("QueueEntryRequestedTier")
+  tierRoles      TierRole[]
+}
