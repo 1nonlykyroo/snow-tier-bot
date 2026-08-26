@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, type ChatInputCommandInteraction, type GuildMember } from "discord.js";
 import type { SlashCommand } from "../types.js";
-import { createBaseEmbed } from "../../utils/embeds.js";
+import { createInfoEmbed, createSuccessEmbed } from "../../utils/embeds.js";
 import { UserFacingError } from "../../utils/errors.js";
 import {
   GAMEMODE_DEFINITIONS,
@@ -95,10 +95,9 @@ async function handleSet(interaction: ChatInputCommandInteraction): Promise<void
 
   await interaction.editReply({
     embeds: [
-      createBaseEmbed()
-        .setTitle("Tier Updated")
+      createSuccessEmbed("TIER UPDATED")
         .setDescription(
-          `${player.toString()} is now ${formatTierRoleName(gamemode, result.newTierLabel)} (previous: ${result.oldTierLabel ?? "Unranked"}).`
+          `${player.toString()}\n${gamemode} • ${result.oldTierLabel ?? "UNRANKED"} -> ${result.newTierLabel}`
         )
         .addFields(
           { name: "Reason", value: reason },
@@ -123,9 +122,8 @@ async function handleRemove(interaction: ChatInputCommandInteraction): Promise<v
 
   await interaction.editReply({
     embeds: [
-      createBaseEmbed()
-        .setTitle("Tier Removed")
-        .setDescription(`${player.toString()} is now unranked in ${gamemode}. Removed ${result.removedTierLabel}.`)
+      createSuccessEmbed("TIER REMOVED")
+        .setDescription(`${player.toString()}\n${gamemode} • ${result.removedTierLabel} -> UNRANKED`)
         .addFields({ name: "Reason", value: reason })
     ]
   });
@@ -149,8 +147,7 @@ async function handleHistory(interaction: ChatInputCommandInteraction): Promise<
 
   await interaction.editReply({
     embeds: [
-      createBaseEmbed()
-        .setTitle(`Tier History: ${player.username}`)
+      createInfoEmbed(`TIER HISTORY: ${player.username}`)
         .setDescription(description)
     ]
   });

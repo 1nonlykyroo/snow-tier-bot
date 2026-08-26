@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, type ButtonInteraction, type GuildMember, type StringSelectMenuInteraction } from "discord.js";
 import type { SlashCommand } from "./types.js";
-import { createBaseEmbed } from "../utils/embeds.js";
+import { createBaseEmbed, createInfoEmbed, createSuccessEmbed } from "../utils/embeds.js";
 import { UserFacingError } from "../utils/errors.js";
 import { GAMEMODE_DEFINITIONS, QUEUE_REGIONS, type QueueRegionLabel } from "../features/foundation/tiers.js";
 import {
@@ -94,7 +94,7 @@ export const queueCommand: SlashCommand = {
       await requireQueueStaffAccess(interaction.guildId!, actingMember);
       const repost = interaction.options.getBoolean("repost") ?? false;
       const message = await postOrRefreshQueuePanel({ guild: interaction.guild, repost });
-      await interaction.editReply({ embeds: [createBaseEmbed().setTitle("Queue Panel Updated").setDescription(`Panel ready in <#${message.channelId}>.`)] });
+      await interaction.editReply({ embeds: [createSuccessEmbed("QUEUE PANEL UPDATED", `Panel ready in <#${message.channelId}>.`)] });
       return;
     }
 
@@ -107,7 +107,7 @@ export const queueCommand: SlashCommand = {
     if (subcommand === "leave") {
       const member = (await interaction.guild.members.fetch(interaction.user.id)) as GuildMember;
       const result = await leaveOwnQueue({ guild: interaction.guild, member, actorDiscordUserId: interaction.user.id });
-      await interaction.editReply({ embeds: [createBaseEmbed().setTitle("Left Queue").setDescription(`${result.gamemodeLabel} • ${result.region}`)] });
+      await interaction.editReply({ embeds: [createInfoEmbed("QUEUE LEFT", `${result.gamemodeLabel} • ${result.region}`)] });
       return;
     }
 
@@ -143,7 +143,7 @@ export const queueCommand: SlashCommand = {
       const region = interaction.options.getString("region", true) as QueueRegionLabel;
       const opened = await openQueueForTester({ guild: interaction.guild, member, gamemode, region, actorDiscordUserId: interaction.user.id });
       await sendQueueLog({ guild: interaction.guild, title: "Queue Opened", description: `${opened.gamemodeLabel} • ${opened.region} opened by <@${interaction.user.id}>.` });
-      await interaction.editReply({ embeds: [createBaseEmbed().setTitle("Queue Opened").setDescription(`${opened.gamemodeLabel} • ${opened.region}`)] });
+      await interaction.editReply({ embeds: [createSuccessEmbed("QUEUE OPENED", `${opened.gamemodeLabel} • ${opened.region}`)] });
       return;
     }
 
@@ -153,7 +153,7 @@ export const queueCommand: SlashCommand = {
       const region = interaction.options.getString("region", true) as QueueRegionLabel;
       const closed = await closeQueueForActor({ guild: interaction.guild, member, gamemode, region, actorDiscordUserId: interaction.user.id });
       await sendQueueLog({ guild: interaction.guild, title: "Queue Closed", description: `${closed.gamemodeLabel} • ${closed.region} closed by <@${interaction.user.id}>.` });
-      await interaction.editReply({ embeds: [createBaseEmbed().setTitle("Queue Closed").setDescription(`${closed.gamemodeLabel} • ${closed.region}`)] });
+      await interaction.editReply({ embeds: [createSuccessEmbed("QUEUE CLOSED", `${closed.gamemodeLabel} • ${closed.region}`)] });
       return;
     }
 
@@ -168,13 +168,13 @@ export const queueCommand: SlashCommand = {
     if (subcommand === "done") {
       const completed = await completeTestingQueueForPlayer({ guild: interaction.guild, actorMember, actorDiscordUserId: interaction.user.id, targetMember });
       await sendQueueLog({ guild: interaction.guild, title: "Testing Queue Completed", description: `Removed <@${targetUser.id}> from ${completed.gamemodeLabel} • ${completed.region} live queue.` });
-      await interaction.editReply({ embeds: [createBaseEmbed().setTitle("Testing Queue Updated").setDescription(`Removed <@${targetUser.id}> from ${completed.gamemodeLabel} • ${completed.region} live queue.`)] });
+      await interaction.editReply({ embeds: [createSuccessEmbed("TESTING QUEUE UPDATED", `Removed <@${targetUser.id}> from ${completed.gamemodeLabel} • ${completed.region} live queue.`)] });
       return;
     }
 
     const removed = await removePlayerFromQueue({ guild: interaction.guild, actorMember, actorDiscordUserId: interaction.user.id, targetMember, reason: interaction.options.getString("reason") });
     await sendQueueLog({ guild: interaction.guild, title: "Queue Player Removed", description: `Removed <@${targetUser.id}> from ${removed.gamemodeLabel} • ${removed.region} queue.` });
-    await interaction.editReply({ embeds: [createBaseEmbed().setTitle("Queue Player Removed").setDescription(`Removed <@${targetUser.id}> from ${removed.gamemodeLabel} • ${removed.region} queue.`)] });
+    await interaction.editReply({ embeds: [createSuccessEmbed("QUEUE PLAYER REMOVED", `Removed <@${targetUser.id}> from ${removed.gamemodeLabel} • ${removed.region} queue.`)] });
   }
 };
 
@@ -199,7 +199,7 @@ export async function handleQueueComponentInteraction(interaction: ButtonInterac
     await interaction.deferReply({ ephemeral: true });
     const member = (await interaction.guild.members.fetch(interaction.user.id)) as GuildMember;
     await joinTestingSessionFromButton({ guild: interaction.guild, member, sessionId, actorDiscordUserId: interaction.user.id });
-    await interaction.editReply({ embeds: [createBaseEmbed().setTitle("Joined Testing Queue").setDescription("You were added to the live queue.")] });
+    await interaction.editReply({ embeds: [createSuccessEmbed("QUEUE JOINED", "You were added to the live queue.")] });
     return;
   }
 
@@ -207,7 +207,7 @@ export async function handleQueueComponentInteraction(interaction: ButtonInterac
     const sessionId = expectCustomIdPart(interaction.customId, 2);
     await interaction.deferReply({ ephemeral: true });
     await leaveTestingSessionFromButton({ guild: interaction.guild, sessionId, actorDiscordUserId: interaction.user.id });
-    await interaction.editReply({ embeds: [createBaseEmbed().setTitle("Left Testing Queue").setDescription("You were removed from the live queue.")] });
+    await interaction.editReply({ embeds: [createInfoEmbed("QUEUE LEFT", "You were removed from the live queue.")] });
     return;
   }
 
@@ -215,7 +215,7 @@ export async function handleQueueComponentInteraction(interaction: ButtonInterac
     await interaction.deferReply({ ephemeral: true });
     const member = (await interaction.guild.members.fetch(interaction.user.id)) as GuildMember;
     const result = await leaveOwnQueue({ guild: interaction.guild, member, actorDiscordUserId: interaction.user.id });
-    await interaction.editReply({ embeds: [createBaseEmbed().setTitle("Left Queue").setDescription(`${result.gamemodeLabel} • ${result.region}`)] });
+    await interaction.editReply({ embeds: [createInfoEmbed("QUEUE LEFT", `${result.gamemodeLabel} • ${result.region}`)] });
     return;
   }
 
@@ -260,7 +260,7 @@ export async function handleQueueComponentInteraction(interaction: ButtonInterac
     const flowId = expectCustomIdPart(interaction.customId, 2);
     getJoinQueueDraftForInteraction({ guildId: interaction.guildId!, userId: interaction.user.id, flowId });
     deleteJoinQueueDraft({ guildId: interaction.guildId!, userId: interaction.user.id, flowId });
-    await interaction.update({ embeds: [createBaseEmbed().setTitle("Join Cancelled").setDescription("Queue join cancelled.")], components: [] });
+    await interaction.update({ embeds: [createInfoEmbed("JOIN CANCELLED", "Queue join cancelled.")], components: [] });
     return;
   }
 

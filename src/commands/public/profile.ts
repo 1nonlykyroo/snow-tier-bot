@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from "discord.js";
 import type { SlashCommand } from "../types.js";
-import { createBaseEmbed } from "../../utils/embeds.js";
+import { createInfoEmbed } from "../../utils/embeds.js";
 import { getProfile } from "../../features/tier/service.js";
 import { UserFacingError } from "../../utils/errors.js";
 
@@ -22,8 +22,7 @@ export const profileCommand: SlashCommand = {
 
     await interaction.editReply({
       embeds: [
-        createBaseEmbed()
-          .setTitle("SNOW TIER PROFILE")
+        createInfoEmbed("SNOW TIER PROFILE")
           .addFields(
             { name: "Player", value: targetUser.toString(), inline: false },
             { name: "Region", value: "Not Set", inline: true },

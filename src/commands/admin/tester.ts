@@ -10,7 +10,7 @@ import {
   type GuildMember
 } from "discord.js";
 import type { SlashCommand } from "../types.js";
-import { createBaseEmbed } from "../../utils/embeds.js";
+import { createInfoEmbed, createSuccessEmbed } from "../../utils/embeds.js";
 import { UserFacingError } from "../../utils/errors.js";
 import {
   addTester,
@@ -175,8 +175,7 @@ async function handleProfile(interaction: ChatInputCommandInteraction, actingMem
 
   await interaction.editReply({
     embeds: [
-      createBaseEmbed()
-        .setTitle("SNOW TIER TESTER")
+      createInfoEmbed("SNOW TIER TESTER")
         .setDescription(`${targetUser.toString()}\n${formatStatus(tester.status)} • ${formatAvailability(tester.availability)} • ${tester.regionAvailability}`)
         .addFields({ name: "Certifications", value: `\`\`\`text\n${certifications}\n\`\`\`` })
     ]
@@ -195,8 +194,7 @@ async function handleAvailability(interaction: ChatInputCommandInteraction): Pro
 
   await interaction.editReply({
     embeds: [
-      createBaseEmbed()
-        .setTitle("Availability Updated")
+      createSuccessEmbed("TESTER UPDATED")
         .setDescription(`${formatAvailability(tester.availability)} • ${tester.regionAvailability}`)
     ]
   });
@@ -220,7 +218,7 @@ async function handleHistory(interaction: ChatInputCommandInteraction, actingMem
           .slice(0, 4000);
 
   await interaction.editReply({
-    embeds: [createBaseEmbed().setTitle(`Tester History: ${targetUser.username}`).setDescription(description)]
+    embeds: [createInfoEmbed(`TESTER HISTORY: ${targetUser.username}`, description)]
   });
 }
 
@@ -230,8 +228,7 @@ async function handleAdd(interaction: ChatInputCommandInteraction): Promise<void
 
   await interaction.editReply({
     embeds: [
-      createBaseEmbed()
-        .setTitle("Tester Added")
+      createSuccessEmbed("TESTER UPDATED")
         .setDescription(`${targetUser.toString()}\nActive • Offline • BOTH`)
         .addFields({ name: "Role Sync", value: result.roleWarning ?? "Tester role synchronized." })
     ]
@@ -250,8 +247,7 @@ async function handleRemove(interaction: ChatInputCommandInteraction): Promise<v
 
   await interaction.editReply({
     embeds: [
-      createBaseEmbed()
-        .setTitle("Tester Disabled")
+      createSuccessEmbed("TESTER UPDATED")
         .setDescription(`${targetUser.toString()}\nDisabled • Offline`)
         .addFields({ name: "Reason", value: reason }, { name: "Role Sync", value: result.roleWarning ?? "Tester role synchronized." })
     ]
@@ -264,7 +260,7 @@ async function handleSuspend(interaction: ChatInputCommandInteraction): Promise<
   await suspendTester({ guildId: interaction.guildId!, targetUser, changedByDiscordUserId: interaction.user.id, reason });
 
   await interaction.editReply({
-    embeds: [createBaseEmbed().setTitle("Tester Suspended").setDescription(`${targetUser.toString()}\nSuspended • Offline`).addFields({ name: "Reason", value: reason })]
+    embeds: [createSuccessEmbed("TESTER UPDATED", `${targetUser.toString()}\nSuspended • Offline`).addFields({ name: "Reason", value: reason })]
   });
 }
 
@@ -280,8 +276,7 @@ async function handleRestore(interaction: ChatInputCommandInteraction): Promise<
 
   await interaction.editReply({
     embeds: [
-      createBaseEmbed()
-        .setTitle("Tester Restored")
+      createSuccessEmbed("TESTER UPDATED")
         .setDescription(`${targetUser.toString()}\nActive • Offline`)
         .addFields({ name: "Reason", value: reason }, { name: "Role Sync", value: result.roleWarning ?? "Tester role synchronized." })
     ]
@@ -304,9 +299,8 @@ async function handleCertify(interaction: ChatInputCommandInteraction): Promise<
 
   await interaction.editReply({
     embeds: [
-      createBaseEmbed()
-        .setTitle("Certification Updated")
-        .setDescription(`${targetUser.toString()}\n${gamemode}: ${result.oldLevel} -> ${result.newLevel}`)
+      createSuccessEmbed("TESTER UPDATED")
+        .setDescription(`${targetUser.toString()}\n${gamemode} • ${result.oldLevel} -> ${result.newLevel}`)
         .addFields({ name: "Reason", value: reason })
     ]
   });
@@ -326,9 +320,8 @@ async function handleUncertify(interaction: ChatInputCommandInteraction): Promis
 
   await interaction.editReply({
     embeds: [
-      createBaseEmbed()
-        .setTitle("Certification Removed")
-        .setDescription(`${targetUser.toString()}\n${gamemode}: ${result.oldLevel} -> NONE`)
+      createSuccessEmbed("TESTER UPDATED")
+        .setDescription(`${targetUser.toString()}\n${gamemode} • ${result.oldLevel} -> NONE`)
         .addFields({ name: "Reason", value: reason })
     ]
   });

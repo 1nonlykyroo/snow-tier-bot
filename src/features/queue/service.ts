@@ -19,7 +19,7 @@ import {
   userMention
 } from "discord.js";
 import { prisma } from "../../database/prisma.js";
-import { createBaseEmbed } from "../../utils/embeds.js";
+import { createBaseEmbed, createInfoEmbed, createSuccessEmbed } from "../../utils/embeds.js";
 import { UserFacingError } from "../../utils/errors.js";
 import { logger } from "../../utils/logger.js";
 import { GAMEMODE_DEFINITIONS, QUEUE_REGIONS, formatWhitelistRoleName, type QueueRegionLabel } from "../foundation/tiers.js";
@@ -49,8 +49,7 @@ export async function requireQueueStaffAccess(guildId: string, member: GuildMemb
 export function buildQueuePanelMessage() {
   return {
     embeds: [
-      createBaseEmbed()
-        .setTitle("SNOW TIER TESTING")
+      createInfoEmbed("SNOW TIER TESTING")
         .setDescription(["Join a PvP testing queue.", "", "Choose your region and gamemode,", "then wait for a tester to open testing."].join("\n"))
     ],
     components: [
@@ -127,7 +126,7 @@ export async function postOrRefreshQueuePanel(input: { guild: Guild; repost?: bo
 
 export function buildJoinQueueRegionStep(flowId: string): InteractionEditReplyOptions {
   return {
-    embeds: [createBaseEmbed().setTitle("Join Queue").setDescription("Select your region.")],
+    embeds: [createInfoEmbed("JOIN QUEUE", "Select your region.")],
     components: [
       new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
         new StringSelectMenuBuilder()
@@ -141,7 +140,7 @@ export function buildJoinQueueRegionStep(flowId: string): InteractionEditReplyOp
 
 export function buildJoinQueueGamemodeStep(flowId: string, region: QueueRegionLabel): InteractionEditReplyOptions {
   return {
-    embeds: [createBaseEmbed().setTitle("Join Queue").setDescription(`${region}\nSelect your gamemode.`)],
+    embeds: [createInfoEmbed("JOIN QUEUE", `${region}\nSelect your gamemode.`)],
     components: [
       new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
         new StringSelectMenuBuilder()
@@ -164,7 +163,7 @@ export async function buildJoinQueueConfirmation(input: {
   return {
     embeds: [
       createBaseEmbed()
-        .setTitle("Join Queue")
+        .setTitle("❄ JOIN QUEUE")
         .setDescription([
           `${config.gamemode.label} • ${input.region}`,
           "",
@@ -478,7 +477,12 @@ export async function removePlayerFromQueue(input: {
 export async function sendQueueClosedMessage(input: { guild: Guild; channelId: string; gamemodeLabel: string; region: QueueRegionLabel }): Promise<void> {
   const channel = await getRequiredTextChannel(input.guild, input.channelId);
   await channel.send({
-    content: [`❄ ${input.gamemodeLabel.toUpperCase()} • ${input.region} TESTING CLOSED`, "", "Testing is no longer accepting players.", "", `Please wait until a tester opens ${input.gamemodeLabel} ${input.region} again.`, "", "Snow Tier"].join("\n"),
+    embeds: [
+      createInfoEmbed(
+        `${input.gamemodeLabel.toUpperCase()} • ${input.region} TESTING CLOSED`,
+        ["Testing is no longer accepting players.", "", `Please wait until a tester opens ${input.gamemodeLabel} ${input.region} again.`].join("\n")
+      )
+    ],
     allowedMentions: { parse: [] }
   });
 }
@@ -619,22 +623,21 @@ export async function refreshTestingSessionMessage(guild: Guild, sessionId: stri
 }
 
 export function buildQueueJoinedEmbed(input: { gamemodeLabel: string; region: QueueRegionLabel; channelId: string }): EmbedBuilder {
-  return createBaseEmbed().setTitle("Queue Joined").setDescription(`${input.gamemodeLabel} • ${input.region}\n<#${input.channelId}>\n\nWaiting for Tester`);
+  return createSuccessEmbed("QUEUE JOINED", `${input.gamemodeLabel} • ${input.region}\n<#${input.channelId}>\n\nWaiting for Tester`);
 }
 
 export function buildOwnQueueEmbed(input: { gamemodeLabel: string; region: QueueRegionLabel; channelId: string | null; isOpen: boolean }): EmbedBuilder {
-  return createBaseEmbed().setTitle("Your Queue").setDescription([`${input.gamemodeLabel} • ${input.region}`, input.channelId ? `<#${input.channelId}>` : "Channel not configured", "", "Status", input.isOpen ? "Testing Open" : "Waiting for Tester"].join("\n"));
+  return createInfoEmbed("YOUR QUEUE", [`${input.gamemodeLabel} • ${input.region}`, input.channelId ? `<#${input.channelId}>` : "Channel not configured", "", "Status", input.isOpen ? "Testing Open" : "Waiting for Tester"].join("\n"));
 }
 
 export function buildQueueListMessage(entries: Array<{ gamemodeLabel: string; region: QueueRegionLabel; waiting: number; isOpen: boolean }>): InteractionEditReplyOptions {
   if (entries.length === 0) {
-    return { embeds: [createBaseEmbed().setTitle("SNOW TIER QUEUES").setDescription("No matching queues are configured.")] };
+    return { embeds: [createInfoEmbed("SNOW TIER QUEUES", "No matching queues are configured.")] };
   }
 
   return {
     embeds: [
-      createBaseEmbed()
-        .setTitle("SNOW TIER QUEUES")
+      createInfoEmbed("SNOW TIER QUEUES")
         .setDescription(entries.map((entry) => `${entry.gamemodeLabel} ${entry.region}       ${entry.waiting} waiting${entry.isOpen ? " • OPEN" : ""}`).join("\n"))
     ]
   };
@@ -797,25 +800,26 @@ function buildTestingSessionOpenMessage(input: { sessionId: string; roleId: stri
   const lines = input.members.length === 0
     ? ["No players are currently waiting."]
     : [
-        ...input.members.slice(0, TESTING_QUEUE_VISIBLE_LIMIT).map((member, index) => `${index + 1} - <@${member.discordUserId}>`),
+        ...input.members.slice(0, TESTING_QUEUE_VISIBLE_LIMIT).map((member, index) => `${index + 1}. <@${member.discordUserId}>`),
         ...(input.members.length > TESTING_QUEUE_VISIBLE_LIMIT ? [`+ ${input.members.length - TESTING_QUEUE_VISIBLE_LIMIT} more waiting`] : [])
       ];
 
   return {
-    content: [
-      `<@&${input.roleId}>`,
-      "",
-      `❄ ${input.gamemodeLabel.toUpperCase()} • ${input.region} TESTING OPEN`,
-      "",
-      `${userMention(input.testerDiscordUserId)} is now accepting tests.`,
-      "",
-      `If you're waiting for ${input.gamemodeLabel} ${input.region},`,
-      "you may now join the queue.",
-      "",
-      ...lines,
-      "",
-      "Snow Tier"
-    ].join("\n"),
+    ...(input.pingRole ? { content: `<@&${input.roleId}>` } : {}),
+    embeds: [
+      createInfoEmbed(
+        `${input.gamemodeLabel.toUpperCase()} • ${input.region} TESTING OPEN`,
+        [
+          `${userMention(input.testerDiscordUserId)} is now accepting tests.`,
+          "",
+          `If you're waiting for ${input.gamemodeLabel} ${input.region},`,
+          "you may now join the queue.",
+          "",
+          "QUEUE",
+          ...lines
+        ].join("\n")
+      )
+    ],
     allowedMentions: input.pingRole ? { parse: [], roles: [input.roleId] } : { parse: [] },
     components: [
       new ActionRowBuilder<ButtonBuilder>().addComponents(

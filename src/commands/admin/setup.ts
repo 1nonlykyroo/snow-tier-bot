@@ -5,7 +5,7 @@ import {
   type ChatInputCommandInteraction
 } from "discord.js";
 import type { SlashCommand } from "../types.js";
-import { createBaseEmbed } from "../../utils/embeds.js";
+import { createInfoEmbed, createSuccessEmbed } from "../../utils/embeds.js";
 import { UserFacingError } from "../../utils/errors.js";
 import {
   QUEUE_REGIONS,
@@ -198,8 +198,7 @@ async function handleChannelSetup(interaction: ChatInputCommandInteraction): Pro
 
   await interaction.editReply({
     embeds: [
-      createBaseEmbed()
-        .setTitle("Setup Updated")
+      createSuccessEmbed("SETUP UPDATED")
         .setDescription(`Stored ${channel.toString()} for \`${target}\`.`)
     ]
   });
@@ -220,8 +219,7 @@ async function handleStaffRoleSetup(interaction: ChatInputCommandInteraction): P
 
   await interaction.editReply({
     embeds: [
-      createBaseEmbed()
-        .setTitle("Setup Updated")
+      createSuccessEmbed("SETUP UPDATED")
         .setDescription(`Stored ${role.toString()} for \`${target}\`.`)
     ]
   });
@@ -236,8 +234,7 @@ async function handleTierRoleSetup(interaction: ChatInputCommandInteraction): Pr
 
   await interaction.editReply({
     embeds: [
-      createBaseEmbed()
-        .setTitle("Tier Role Mapped")
+      createSuccessEmbed("SETUP UPDATED")
         .setDescription(`Mapped ${role.toString()} to \`${formatTierRoleName(gamemode, tier)}\`.`)
     ]
   });
@@ -248,8 +245,7 @@ async function handleTierRoleSync(interaction: ChatInputCommandInteraction): Pro
 
   await interaction.editReply({
     embeds: [
-      createBaseEmbed()
-        .setTitle("Tier Roles Synced")
+      createSuccessEmbed("SETUP UPDATED")
         .setDescription(
           [
             `Created: ${result.created.length}`,
@@ -266,8 +262,7 @@ async function handleOverview(interaction: ChatInputCommandInteraction): Promise
 
   await interaction.editReply({
     embeds: [
-      createBaseEmbed()
-        .setTitle("Setup Overview")
+      createInfoEmbed("SETUP OVERVIEW")
         .addFields(
           { name: "Queue Panel Channel", value: formatChannelMention(overview.queueChannelId), inline: true },
           { name: "Results channel", value: formatChannelMention(overview.resultsChannelId), inline: true },
@@ -294,8 +289,7 @@ async function handleWhitelistRoleSync(interaction: ChatInputCommandInteraction)
 
   await interaction.editReply({
     embeds: [
-      createBaseEmbed()
-        .setTitle("Whitelist Roles")
+      createSuccessEmbed("SETUP UPDATED")
         .setDescription([`Created: ${result.created.length}`, `Mapped existing: ${result.mapped.length}`, `Failed: ${result.failed.length}`, `${result.created.length + result.mapped.length}/18`].join("\n"))
     ]
   });
@@ -309,7 +303,7 @@ async function handleQueueChannelSetup(interaction: ChatInputCommandInteraction)
   await mapQueueChannel(interaction.guildId!, gamemode, region, channel.id, interaction.user.id);
 
   await interaction.editReply({
-    embeds: [createBaseEmbed().setTitle("Queue Channel Configured").setDescription(`${gamemode} • ${region}\n${channel.toString()}`)]
+    embeds: [createSuccessEmbed("SETUP UPDATED", `${gamemode} • ${region}\n${channel.toString()}`)]
   });
 }
 
@@ -320,7 +314,7 @@ async function handleQueuePermissionsSetup(interaction: ChatInputCommandInteract
   await updateQueueChannelPermissions({ guild: interaction.guild!, gamemodeLabel: gamemode, region });
 
   await interaction.editReply({
-    embeds: [createBaseEmbed().setTitle("Queue Permissions Updated").setDescription(`${gamemode} • ${region}`)]
+    embeds: [createSuccessEmbed("SETUP UPDATED", `${gamemode} • ${region}`)]
   });
 }
 
